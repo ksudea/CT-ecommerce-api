@@ -15,20 +15,22 @@ Customer and CustomerAccount Management: CRUD endpoints for managing Customers a
 - Delete CustomerAccount: delete a customer account.
     
 Product Catalog: CRUD endpoints for managing Products:
-    - Create Product: Implement an endpoint to add a new product to the e-commerce database with product name and price.
-    - Read Product: Retrieve product details based on the product's unique identifier (ID). Provide functionality to query and display product information.
-    - Update Product: Update product details, allowing modifications to the product name and price.
-    - Delete Product: Delete a product from the system based on its unique ID.
-    - List Products: List all available products in the e-commerce platform.
+
+- Create Product: Implement an endpoint to add a new product to the e-commerce database with product name and price.
+- Read Product: Retrieve product details based on the product's unique identifier (ID). Provide functionality to query and display product information.
+- Update Product: Update product details, allowing modifications to the product name and price.
+- Delete Product: Delete a product from the system based on its unique ID.
+- List Products: List all available products in the e-commerce platform.
 
 Order Processing: Orders Management functionality to efficiently handle customer orders, ensuring that customers can place, track, and manage their orders seamlessly.
-    - Place Order: Customer can place a new order, specifying the products they wish to purchase and providing essential order details including customer ID, date, and product IDs.
-    - Retrieve Order: Allows customers to retrieve details of a specific order based on its unique identifier (ID). Provide a clear overview of the order, including the order date and associated products.
-    - Track Order: Enables customers to track the status and progress of their orders. Customers should be able to access information such as order dates and expected delivery dates.
-    - Cancel Order (Bonus): Allows customers to cancel an order.
-    - Calculate Order Total Price (Bonus): Calculates the total price of items in a specific order, considering the prices of the products included in the order.
+- Place Order: Customer can place a new order, specifying the products they wish to purchase and providing essential order details including customer ID, date, and product IDs.
+- Retrieve Order: Allows customers to retrieve details of a specific order based on its unique identifier (ID). Provide a clear overview of the order, including the order date and associated products.
+- Track Order: Enables customers to track the status and progress of their orders. Customers should be able to access information such as order dates and expected delivery dates.
+- Cancel Order (Bonus): Allows customers to cancel an order.
+- Calculate Order Total Price (Bonus): Calculates the total price of items in a specific order, considering the prices of the products included in the order.
 
 Running the application:
+
 - Virtual environment:
 -- python -m venv myenv     
 -- myenv\scripts\activate 
