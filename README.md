@@ -4,14 +4,15 @@ Mini-project: E-Commerce API
 API features:
 
 Customer and CustomerAccount Management: CRUD endpoints for managing Customers and their associated CustomerAccounts:
-    - Create Customer: Add a new customer with essential customer information, including name, email, and phone number.
-    - Read Customer: Retrieve customer details based on their unique identifier (ID).
-    - Update Customer: Update customer details, allows modifications to the customer's name, email, and phone number.
-    - Delete Customer: delete a customer from the system based on their ID.
-    - Create CustomerAccount: Add a new customer account with fields for a unique username and a password.
-    - Read CustomerAccount: Retrieve customer account details.
-    - Update CustomerAccount: Update customer account information, including the username and password.
-    - Delete CustomerAccount: delete a customer account.
+
+- Create Customer: Add a new customer with essential customer information, including name, email, and phone number.
+- Read Customer: Retrieve customer details based on their unique identifier (ID).
+- Update Customer: Update customer details, allows modifications to the customer's name, email, and phone number.
+- Delete Customer: delete a customer from the system based on their ID.
+- Create CustomerAccount: Add a new customer account with fields for a unique username and a password.
+- Read CustomerAccount: Retrieve customer account details.
+- Update CustomerAccount: Update customer account information, including the username and password.
+- Delete CustomerAccount: delete a customer account.
     
 Product Catalog: CRUD endpoints for managing Products:
     - Create Product: Implement an endpoint to add a new product to the e-commerce database with product name and price.
