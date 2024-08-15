@@ -3,10 +3,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from marshmallow import fields, ValidationError, validate
 from mysql.connector import Error
+import enum
+from datetime import timedelta 
+
 
 my_password = "0711"
+db_name = "e_commerce_db_2"
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://root:{my_password}@localhost/fitness_center_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://root:{my_password}@localhost/{db_name}'
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
@@ -25,13 +29,30 @@ class ProductSchema(ma.Schema):
     class Meta:
         fields = ("name", "price", "id")
 
-class OrderSchema(ma.Schema):
-    id = fields.Integer(required=True)
+#Enum for status of orders, used in OrderSchema
+class StatusEnum(enum.Enum):
+    preparing = 1
+    on_the_way = 2
+    delayed = 3
+    delivered = 4
+
+#Schema for basic order inputs
+class OrderInputSchema(ma.Schema):
     customer_id = fields.Integer(required=True)
     date = fields.Date()
-
+    product_ids = fields.List(fields.Integer())
     class Meta:
-        fields = ("customer_id", "date", "id")
+        fields = ("customer_id", "date", "product_ids", "id")
+
+#Schema for detailed complete order information 
+class OrderSchema(ma.Schema):
+    customer_id = fields.Integer(required=True)
+    date = fields.Date()
+    expected_delivery_date = fields.Date()
+    status = fields.Enum(StatusEnum)
+    products = fields.List(fields.Nested(ProductSchema))
+    class Meta:
+        fields = ("customer_id", "date", "expected_delivery_date", "status", "products", "id")
 
 class CustomerAccountSchema(ma.Schema):
     username = fields.String(required=True)
@@ -48,6 +69,8 @@ product_schema = ProductSchema()
 products_schema = ProductSchema(many=True)
 
 customer_account_schema = CustomerAccountSchema()
+
+order_input_schema = OrderInputSchema()
 
 order_schema = OrderSchema()
 orders_schema = OrderSchema(many=True)
@@ -69,24 +92,30 @@ class CustomerAccount(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('Customers.id'))
     customer = db.relationship('Customer', backref='customer_account', uselist=False)
 
+
+order_product = db.Table('Order_Product', 
+    db.Column('order_id', db.Integer, db.ForeignKey('Orders.id'), primary_key=True),
+    db.Column('product_id', db.Integer, db.ForeignKey('Products.id'), primary_key=True))
+
 class Order(db.Model):
     __tablename__ = 'Orders'
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('Customers.id'))
     date = db.Column(db.Date, nullable=False)
-
-order_product = db.Table('Order_Product', 
-    db.Column('order_id', db.Integer, db.ForeignKey('Orders.id'), primary_key=True),
-    db.Column('product_id', db.Integer, db.ForeignKey('Products.id'), primary_key=True))
+    expected_delivery_date = db.Column(db.Date)
+    status = db.Column(db.Enum(StatusEnum))
+    products = db.relationship('Product', secondary=order_product, back_populates='orders')
 
 class Product(db.Model):
     __tablename__ = 'Products'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     price = db.Column(db.Float, nullable=False)
-    orders = db.relationship('Order', secondary=order_product, backref=db.backref('products'))
+    orders = db.relationship('Order', secondary=order_product, back_populates='products')
 
 # CRUD for Customers
+
+#Create customer
 @app.route('/customers', methods=['POST'])
 def add_customer():
     try:
@@ -103,7 +132,7 @@ def add_customer():
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
-
+#Read customer
 @app.route('/customers/<int:id>', methods=['GET'])
 def get_customer(id):
     try:
@@ -113,6 +142,7 @@ def get_customer(id):
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+#Update customer
 @app.route('/customers/<int:id>', methods=['PUT'])
 def update_customer(id):
     customer = Customer.query.get_or_404(id)
@@ -131,6 +161,7 @@ def update_customer(id):
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+#Delete customer
 @app.route("/customers/<int:id>", methods=["DELETE"])
 def delete_customer(id):
     try:
@@ -143,7 +174,7 @@ def delete_customer(id):
         return jsonify({"error": "Internal Server Error"}), 500
 
 # CRUD for CustomerAccounts
-
+#Create customer account
 @app.route('/customeraccounts', methods=['POST'])
 def add_customer_account():
     try:
@@ -160,7 +191,7 @@ def add_customer_account():
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
-
+#Read customer account
 @app.route('/customeraccounts/<int:id>', methods=['GET'])
 def get_customer_account(id):
     try:
@@ -170,6 +201,7 @@ def get_customer_account(id):
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+#Update customer account
 @app.route('/customeraccounts/<int:id>', methods=['PUT'])
 def update_customer_account(id):
     customer_account = CustomerAccount.query.get_or_404(id)
@@ -188,6 +220,7 @@ def update_customer_account(id):
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+#Delete customer account
 @app.route("/customeraccounts/<int:id>", methods=["DELETE"])
 def delete_customer_account(id):
     try:
@@ -200,7 +233,7 @@ def delete_customer_account(id):
         return jsonify({"error": "Internal Server Error"}), 500
     
 # CRUD for Products 
-
+#Create product
 @app.route('/products', methods=['POST'])
 def add_product():
     try:
@@ -217,7 +250,7 @@ def add_product():
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
-
+#Read product
 @app.route('/products/<int:id>', methods=['GET'])
 def get_product(id):
     try:
@@ -227,6 +260,7 @@ def get_product(id):
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+#Update product
 @app.route('/products/<int:id>', methods=['PUT'])
 def update_product(id):
     product = Product.query.get_or_404(id)
@@ -244,6 +278,7 @@ def update_product(id):
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+#Delete product
 @app.route("/products/<int:id>", methods=["DELETE"])
 def delete_product(id):
     try:
@@ -263,6 +298,80 @@ def get_products():
 
 # Order Processing
 
+#Add a new order
+@app.route('/orders', methods=['POST'])
+def add_order():
+    try:
+        order_input_data = order_input_schema.load(request.json)
+    except ValidationError as e:
+        print(f"Error: {e}")
+        return jsonify(e.messages), 400
+    try:
+        customer_id = order_input_data['customer_id']
+        date = order_input_data['date']
+        #formatted_date = datetime.strptime(Begindatestring, "%Y-%m-%d") 
+        expected_delivery = date + timedelta(days=10)
+        status = StatusEnum.preparing
+        product_id_list = order_input_data['product_ids']
+        new_order = Order(customer_id=customer_id, date=date, expected_delivery_date=expected_delivery, status=status)
+        db.session.add(new_order)
+        for id in product_id_list:
+            product = Product.query.get_or_404(id)
+            new_order.products.append(product)
+        db.session.commit()
+        return jsonify({"message": "New order added successfully"}), 201
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+# Retrieve order
+@app.route('/orders/<int:id>', methods=['GET'])
+def get_order(id):
+    try:
+        order = Order.query.get_or_404(id)
+        return order_schema.jsonify(order)
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+#Track order: retrieves basic info like date, expected delivery date, status
+@app.route('/orders/track/<int:id>', methods=['GET'])
+def get_order_tracking_details(id):
+    try:
+        order = Order.query.get_or_404(id)
+        order_date = order.date
+        expected_delivery = order.expected_delivery_date
+        status = order.status.name
+        return jsonify({"order-date": order_date, "expected delivery date": expected_delivery, "status": status})
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+# Bonus: cancel order    
+@app.route("/orders/<int:id>", methods=["DELETE"])
+def delete_order(id):
+    try:
+        order_to_delete = Order.query.get_or_404(id)
+        db.session.delete(order_to_delete)
+        db.session.commit()
+        return jsonify({"message": "Order canceled successfully"}), 200
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+#Bonus: order total price
+@app.route('/orders/totalprice/<int:id>', methods=['GET'])
+def get_order_total_price(id):
+    try:
+        order = Order.query.get_or_404(id)
+        total = 0.0
+        products = order.products
+        for product in products:
+            total += product.price
+        return jsonify({"total cost of order": total})
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
 
 with app.app_context():
     db.create_all()
