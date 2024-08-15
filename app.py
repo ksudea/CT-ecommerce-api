@@ -14,10 +14,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://root:{my_passwo
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
+# Schema 
+
 class CustomerSchema(ma.Schema):
-    name = fields.String(required=True)
-    email = fields.String(required=True)
-    phone = fields.String(required=True)
+    #Regex validation for email and phone
+    # Note: shows warning for invalid escape sequence when running app
+    name = fields.String(required=True, validate=validate.Length(min=2))
+    email = fields.String(required=True, validate=validate.Regexp(regex="^[\w\.]+@([\w-]+\.)+[\w-]{2,4}$", error="E-mail is invalid"))
+    phone = fields.String(required=True, validate=validate.Regexp(regex='^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]{5,9}$', error="Phone number is invalid"))
 
     class Meta:
         fields = ("name", "email", "phone", "id")
@@ -75,6 +79,7 @@ order_input_schema = OrderInputSchema()
 order_schema = OrderSchema()
 orders_schema = OrderSchema(many=True)
 
+#Database models
 
 class Customer(db.Model):
     __tablename__ = 'Customers'
