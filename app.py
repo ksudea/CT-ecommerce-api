@@ -5,7 +5,7 @@ from marshmallow import fields, ValidationError, validate
 from mysql.connector import Error
 import enum
 from datetime import timedelta 
-
+from flask_cors import CORS
 
 my_password = "0711"
 db_name = "e_commerce_db_2"
@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://root:{my_password}@localhost/{db_name}'
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
-
+CORS(app)
 # Schema 
 
 class CustomerSchema(ma.Schema):
@@ -58,7 +58,7 @@ class OrderSchema(ma.Schema):
     class Meta:
         fields = ("customer_id", "date", "expected_delivery_date", "status", "products", "id")
 
-class CustomerAccountSchema(ma.Schema):
+class CustomerAccountInputSchema(ma.Schema):
     username = fields.String(required=True)
     password = fields.String(required=True)
     customer_id = fields.Integer(required=True)
@@ -66,13 +66,25 @@ class CustomerAccountSchema(ma.Schema):
     class Meta:
         fields = ("username","password", "customer_id", "id")
 
+class CustomerAccountSchema(ma.Schema):
+    username = fields.String(required=True)
+    password = fields.String(required=True)
+    customer_id = fields.Integer(required=True)
+    name = fields.String(required=True)
+    email = fields.String()
+    phone = fields.String()
+    class Meta: 
+        fields = ("username","password", "customer_id", "name","email", "phone", "id")
+
 customer_schema = CustomerSchema()
 customers_schema = CustomerSchema(many=True)
 
 product_schema = ProductSchema()
 products_schema = ProductSchema(many=True)
 
+customer_account_input_schema = CustomerAccountInputSchema()
 customer_account_schema = CustomerAccountSchema()
+customer_accounts_schema = CustomerAccountSchema(many=True)
 
 order_input_schema = OrderInputSchema()
 
@@ -178,12 +190,24 @@ def delete_customer(id):
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+# List all customers
+@app.route('/customers', methods=['GET'])
+def get_customers():
+    customers = Customer.query.all()
+    return customers_schema.jsonify(customers)
+
+# Get customer by email
+@app.route('/customers/email/<string:email>', methods=['GET'])
+def get_customer_by_email(email):
+    customers = Customer.query.filter(Customer.email == email)
+    return customers_schema.jsonify(customers)
+
 # CRUD for CustomerAccounts
 #Create customer account
 @app.route('/customeraccounts', methods=['POST'])
 def add_customer_account():
     try:
-        customer_account_data = customer_account_schema.load(request.json)
+        customer_account_data = customer_account_input_schema.load(request.json)
     except ValidationError as e:
         print(f"Error: {e}")
         return jsonify(e.messages), 400
@@ -202,6 +226,8 @@ def get_customer_account(id):
     try:
         customer_account = CustomerAccount.query.get_or_404(id)
         return customer_account_schema.jsonify(customer_account)
+        #customer_details = Customer.query.get_or_404(customer_account.customer_id)
+        #return customer_account_schema.jsonify(customer_account.username, customer_account.password, customer_account.customer_id, customer_details.name, customer_details.email, customer_details.phone, customer_account.id)
     except Error as e:
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
@@ -236,7 +262,13 @@ def delete_customer_account(id):
     except Error as e:
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
-    
+
+# Get customer account by customer id
+@app.route('/customeraccounts/customerId/<int:customer_id>', methods=['GET'])
+def get_customer_account_By_cid(customer_id):
+    customer_accounts = CustomerAccount.query.filter(CustomerAccount.customer_id == customer_id)
+    return customer_accounts_schema.jsonify(customer_accounts)
+
 # CRUD for Products 
 #Create product
 @app.route('/products', methods=['POST'])
